@@ -1,0 +1,54 @@
+Understand BERT-NER code implementation
+
+Config: label_map 
+tqdm: show progress of any iterable
+
+
+
+I. run_ner.py:
+In main function:
+    1. Parser: 
+        data_dir: for test/train dataset
+        bert_model: for pretrained model (bert-base-uncased)
+        output_dir, task_name, cache_dir: store pretrained models
+        max_seq_length: after wordPiece* (according to frequency, get root-word / suffix/prefix (lov, ed, ing...) every input sequence are truncated or padded to this len
+        do_train, do_eval, do_lower_case: flags
+        train_batch_size, eval_batch_size: default 32 , 8
+        learning_rate, epochs, weight_decay: hyperparameters
+        warmup_proportion: proportion of total steps to gradually linearly increase l_r
+        ...
+        Server_ip / port: distant debugging
+        gradient_accumulation: batch size / ga, subdivision for grad computation
+
+        Logger: some nice printer with timer
+
+    2.  init processor, which is NER, task name must be in processor
+        set GPU, torch.cuda.set_device(local_rank)
+        check if out_dir exists and non-empty
+
+    3. Tokenizer:
+        return: input_id: the token -> id in each sequence  
+                type_id: in sentence pair, binary, type query or answer
+                attention_mask: for padding, 0, for real, 1
+
+    4. Batch Construction:
+        # readfile() # return "data":  array of tuples, each tuple contains an array of tokens and an array of tags, both with current sequence length. (['EU', 'rejects'], ['ORG', 'O'])
+        # create_examples() # return an Example Object which has id: test-0 / dev-100, the whole stencen string, the tag list of that sentence
+
+    5. Config, load model:
+        num_labels just BIO tagging. 
+
+    6. Construct NER model. (why not from bert.py?)
+        loss: 1 classification loss
+        logits: classification scores before softmax, (batch_size * sequence_length * config.num_labels)
+        
+    7. Model itself: BertForTokenClassification
+        self.bert: BertModel(), return: sequence_output (last_hidden_states batch_size * sequence_length * hidden_size), pooler_output (classification token first token of the sequence batch_size * hidden_size), hidden_states, batch_size*sequence_length*hidden_size
+
+    8. we get tokenclassification job done and output sequence_output, then we construct valid_output stands for with the same dimension.
+    valid_id: only non-O entity. "PER" etc. entities that excludes 'O'
+
+
+
+
+
